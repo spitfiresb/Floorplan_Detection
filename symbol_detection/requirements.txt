@@ -1,4 +1,5 @@
-ultralytics
+
 opencv-python
 tqdm
 pyyaml
+roboflow

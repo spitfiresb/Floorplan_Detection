@@ -1,22 +1,30 @@
 #!/bin/bash
 set -e
 
-echo "Generating dummy data..."
-python symbol_detection/demo_data_gen.py
+if [ -z "$1" ]; then
+    echo "Usage: $0 <ROBOFLOW_API_KEY>"
+    exit 1
+fi
 
-echo "Preparing dataset..."
-# Using aliases for backward compatibility test, but updated logic
-python symbol_detection/data.py --data dummy_data --output symbol_detection/dataset_demo
+API_KEY=$1
 
-echo "Training model (1 epoch)..."
-# Updated model name to full path/name
-python symbol_detection/train.py --dataset symbol_detection/dataset_demo/dataset.yaml --epochs 1 --model yolov8n.pt --name demo_run
 
-echo "Evaluating model..."
-python symbol_detection/eval.py --weights symbol_detection/runs/demo_run/weights/best.pt --data-config symbol_detection/dataset_demo/dataset.yaml
+# Check for a real image in the dataset
+REAL_IMAGE="data/high_quality/33/F1_original.png"
+if [ -f "$REAL_IMAGE" ]; then
+    echo "Found real image at $REAL_IMAGE. Using it for inference..."
+    SOURCE_IMG="$REAL_IMAGE"
+else
+    echo "Generating dummy data..."
+    python symbol_detection/demo_data_gen.py
+    SOURCE_IMG="dummy_data/sample0/F1_original.png"
+fi
 
-echo "Running inference..."
-# Updated flag --weights (alias --model would also work)
-python symbol_detection/predict.py --source dummy_data/sample0/F1_original.png --weights symbol_detection/runs/demo_run/weights/best.pt
+echo "Running inference with Roboflow..."
+python symbol_detection/predict.py \
+    --api-key "$API_KEY" \
+    --source "$SOURCE_IMG" \
+    --output-dir symbol_detection/outputs \
+    --conf 0.1
 
 echo "Demo complete! Check symbol_detection/outputs for results."

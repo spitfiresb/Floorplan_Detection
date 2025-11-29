@@ -22,8 +22,8 @@ for i in range(5):
     folder = f'dummy_data/sample{i}'
     os.makedirs(folder, exist_ok=True)
 
-    # Create dummy image (black)
-    img = np.zeros((500, 500, 3), dtype=np.uint8)
+    # Create dummy image (white)
+    img = np.full((500, 500, 3), 255, dtype=np.uint8)
     cv2.imwrite(f'{folder}/F1_original.png', img)
 
     # Create dummy SVG
