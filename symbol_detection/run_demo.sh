@@ -25,6 +25,8 @@ python symbol_detection/predict.py \
     --api-key "$API_KEY" \
     --source "$SOURCE_IMG" \
     --output-dir symbol_detection/outputs \
+    --project "floorplans-r7e9l-vjwg9" \
+    --version 2 \
     --conf 0.1
 
 echo "Demo complete! Check symbol_detection/outputs for results."

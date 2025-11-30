@@ -6,14 +6,14 @@ import cv2
 import numpy as np
 from pathlib import Path
 
-def run_inference(source, api_key, output_dir='symbol_detection/outputs', conf_thres=0.4):
+def run_inference(source, api_key, project_name, version_number, output_dir='symbol_detection/outputs', conf_thres=0.4):
     """
     Runs inference on source images using Roboflow API.
     """
     print("Initializing Roboflow...")
     rf = Roboflow(api_key=api_key)
-    project = rf.workspace().project("floor-plan-ai-object-detection")
-    model = project.version(1).model
+    project = rf.workspace().project(project_name)
+    model = project.version(version_number).model
 
     # Handle source (file or directory)
     source_path = Path(source)
@@ -115,6 +115,9 @@ if __name__ == "__main__":
     parser.add_argument('--output-dir', type=str, default='symbol_detection/outputs', help='Output directory')
     parser.add_argument('--conf', type=float, default=0.4, help='Confidence threshold (0-1)')
     
+    parser.add_argument('--project', type=str, default='floor-plan-ai-object-detection', help='Roboflow Project ID')
+    parser.add_argument('--version', type=int, default=1, help='Model Version')
+    
     args = parser.parse_args()
     
-    run_inference(args.source, args.api_key, args.output_dir, args.conf)
+    run_inference(args.source, args.api_key, args.project, args.version, args.output_dir, args.conf)
