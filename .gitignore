@@ -3,6 +3,14 @@
 
 __pycache__/
 
+# Environment variables (keep .env.example)
+.env
+.env.local
+
+# Virtual environment
+venv/
+env/
+
 ### Vim ###
 # Swap
 [._]*.s[a-v][a-z]
