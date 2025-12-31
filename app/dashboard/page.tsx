@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import UploadZone from "@/components/floorplan/UploadZone";
 import ResultViewer, { Prediction } from "@/components/floorplan/ResultViewer";
 import { ArrowLeft, RefreshCw } from "lucide-react";
@@ -11,6 +12,24 @@ interface DetectionResult {
         width: number;
         height: number;
     }
+}
+
+const BackButton = ({ onClick, href }: { onClick?: () => void, href?: string }) => {
+    const className = "fixed top-0 left-0 z-50 m-0 inline-flex items-center justify-center p-4 text-white/50 hover:text-white hover:bg-blue-600 transition-all duration-200 ease-out hover:translate-x-1 hover:-translate-y-1";
+
+    if (href) {
+        return (
+            <Link href={href} className={className}>
+                <ArrowLeft className="w-8 h-8" />
+            </Link>
+        )
+    }
+
+    return (
+        <button onClick={onClick} className={className}>
+            <ArrowLeft className="w-8 h-8" />
+        </button>
+    )
 }
 
 export default function DashboardPage() {
@@ -75,19 +94,12 @@ export default function DashboardPage() {
                 }
             `}>
                 {(imageSrc || result) && (
-                    <div className="absolute top-4 right-4 z-50">
-                        <button
-                            onClick={reset}
-                            className="flex items-center px-4 py-2 text-sm text-slate-300 bg-slate-900/80 backdrop-blur-md rounded-lg hover:bg-slate-800 transition-colors border border-slate-800 shadow-lg"
-                        >
-                            <RefreshCw className="w-4 h-4 mr-2" />
-                            New Analysis
-                        </button>
-                    </div>
+                    <BackButton onClick={reset} />
                 )}
 
                 {!imageSrc ? (
-                    <div className="h-full min-h-[500px] flex flex-col p-8">
+                    <div className="h-full min-h-[500px] flex flex-col p-8 relative">
+                        <BackButton href="/" />
                         <div className="flex-1 flex items-center justify-center">
                             <div className="w-full max-w-xl">
                                 <UploadZone onFileSelect={handleFileSelect} isProcessing={isProcessing} />
