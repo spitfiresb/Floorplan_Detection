@@ -164,9 +164,9 @@ export default function ResultViewer({ imageSrc, predictions, imageWidth, imageH
     };
 
     return (
-        <div className="w-full h-full flex items-center justify-center relative p-8">
+        <div className="w-full h-screen flex items-center justify-center relative p-8">
 
-            <div className="flex items-center justify-center gap-10 max-w-full max-h-full translate-y-6">
+            <div className="flex items-center justify-center gap-10 max-w-full max-h-full">
                 {/* Summary Panel - Dynamic Side Section */}
                 <div className="flex flex-col gap-2 pointer-events-none z-40 shrink-0 min-w-[160px]">
                     <AnimatePresence>
@@ -393,53 +393,31 @@ export default function ResultViewer({ imageSrc, predictions, imageWidth, imageH
                                     </div>
 
                                     {/* Class Selection (Only for Add Tool) */}
-                                    <AnimatePresence mode="popLayout">
-                                        {activeTool === "add" && (
-                                            <motion.div
-                                                initial={{ opacity: 0, height: 0 }}
-                                                animate={{ opacity: 1, height: "auto" }}
-                                                exit={{ opacity: 0, height: 0 }}
-                                                className="flex flex-col gap-2 overflow-hidden"
-                                            >
-                                                <div className="text-[10px] items-center text-slate-500 uppercase tracking-widest font-bold flex gap-2 mt-2">
-                                                    <div className="h-[1px] bg-slate-800 flex-grow"></div>
-                                                    Class
-                                                    <div className="h-[1px] bg-slate-800 flex-grow"></div>
-                                                </div>
+                                    {/* Class Selection - Persistent to maintain layout */}
+                                    <div className={`flex flex-col gap-2 overflow-hidden transition-all duration-200 ${activeTool === "remove" ? "opacity-50 grayscale pointer-events-none" : ""}`}>
+                                        <div className="text-[10px] items-center text-slate-500 uppercase tracking-widest font-bold flex gap-2 mt-2">
+                                            <div className="h-[1px] bg-slate-800 flex-grow"></div>
+                                            Class
+                                            <div className="h-[1px] bg-slate-800 flex-grow"></div>
+                                        </div>
 
-                                                <div className="flex flex-col gap-1 max-h-[300px] overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin' }}>
-                                                    {availableClasses.map(cls => (
-                                                        <button
-                                                            key={cls}
-                                                            onClick={() => setSelectedClass(cls)}
-                                                            className={`flex items-center justify-between p-3 text-sm transition-all border border-l-4
-                                                                ${selectedClass === cls
-                                                                    ? "bg-slate-900 border-slate-800 border-l-blue-500 text-white"
-                                                                    : "bg-transparent border-transparent border-l-transparent text-slate-400 hover:bg-slate-900 hover:text-white"
-                                                                }`}
-                                                        >
-                                                            {cls}
-                                                            {selectedClass === cls && <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]"></div>}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </motion.div>
-                                        )}
-
-                                        {/* Instructions (For Remove Tool) */}
-                                        {activeTool === "remove" && (
-                                            <motion.div
-                                                initial={{ opacity: 0, height: 0 }}
-                                                animate={{ opacity: 1, height: "auto" }}
-                                                exit={{ opacity: 0, height: 0 }}
-                                                className="p-4 bg-slate-900/50 border border-slate-800 text-center"
-                                            >
-                                                <p className="text-xs text-slate-400 leading-relaxed">
-                                                    Click on any highlighted box to remove it.
-                                                </p>
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
+                                        <div className="flex flex-col gap-1 max-h-[300px] overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin' }}>
+                                            {availableClasses.map(cls => (
+                                                <button
+                                                    key={cls}
+                                                    onClick={() => setSelectedClass(cls)}
+                                                    className={`flex items-center justify-between p-3 text-sm transition-all border border-l-4
+                                                        ${selectedClass === cls
+                                                            ? "bg-slate-900 border-slate-800 border-l-blue-500 text-white"
+                                                            : "bg-transparent border-transparent border-l-transparent text-slate-400 hover:bg-slate-900 hover:text-white"
+                                                        }`}
+                                                >
+                                                    {cls}
+                                                    {selectedClass === cls && <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]"></div>}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
                                 </motion.div>
                             )}
                         </AnimatePresence>

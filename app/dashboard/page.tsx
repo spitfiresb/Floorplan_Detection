@@ -38,20 +38,69 @@ export default function DashboardPage() {
     const [isProcessing, setIsProcessing] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    const resizeImage = (file: File, maxDimension: number = 1024): Promise<File> => {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.src = URL.createObjectURL(file);
+            img.onload = () => {
+                const canvas = document.createElement("canvas");
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height) {
+                    if (width > maxDimension) {
+                        height = Math.round((height * maxDimension) / width);
+                        width = maxDimension;
+                    }
+                } else {
+                    if (height > maxDimension) {
+                        width = Math.round((width * maxDimension) / height);
+                        height = maxDimension;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext("2d");
+                if (!ctx) {
+                    reject(new Error("Could not get canvas context"));
+                    return;
+                }
+                ctx.drawImage(img, 0, 0, width, height);
+
+                canvas.toBlob((blob) => {
+                    if (!blob) {
+                        reject(new Error("Canvas to Blob failed"));
+                        return;
+                    }
+                    const resizedFile = new File([blob], file.name, {
+                        type: file.type,
+                        lastModified: Date.now(),
+                    });
+                    resolve(resizedFile);
+                }, file.type);
+            };
+            img.onerror = (error) => reject(error);
+        });
+    };
+
     const handleFileSelect = async (file: File) => {
         setIsProcessing(true);
         setError(null);
         setImageSrc(null); // Clear previous image
         setResult(null);
 
-        // Create local preview
-        const objectUrl = URL.createObjectURL(file);
-        setImageSrc(objectUrl);
-
         try {
+            // Resize image
+            const resizedFile = await resizeImage(file, 1024);
+
+            // Create local preview from resized file
+            const objectUrl = URL.createObjectURL(resizedFile);
+            setImageSrc(objectUrl);
+
             // Create FormData
             const formData = new FormData();
-            formData.append("file", file);
+            formData.append("file", resizedFile);
 
             // Call API
             const response = await fetch("/api/detect", {
