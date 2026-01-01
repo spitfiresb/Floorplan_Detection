@@ -86,7 +86,7 @@ export default function ResultViewer({ imageSrc, predictions, imageWidth, imageH
     }, {} as Record<string, { count: number; firstIndex: number }>);
 
     // Get all unique classes for the selector, plus some defaults
-    const availableClasses = Array.from(new Set([...Object.keys(summaryData), "Door", "Window", "Opening", "Stairs", "Shower", "Toilet", "Sink"]));
+    const availableClasses = ["Perimeter", "Bathroom", "Window", "Door", "Stairs"];
 
     // --- Interaction Handlers ---
 
@@ -164,7 +164,7 @@ export default function ResultViewer({ imageSrc, predictions, imageWidth, imageH
     };
 
     return (
-        <div className="w-full h-full flex items-center justify-center overflow-hidden bg-black relative p-8">
+        <div className="w-full h-full flex items-center justify-center relative p-8">
 
             <div className="flex items-center justify-center gap-10 max-w-full max-h-full translate-y-6">
                 {/* Summary Panel - Dynamic Side Section */}
@@ -253,8 +253,8 @@ export default function ResultViewer({ imageSrc, predictions, imageWidth, imageH
 
                                     if (isRemoveMode && isHovered) {
                                         borderColor = "#ef4444";
-                                        backgroundColor = "#ef444455";
-                                        boxShadow = "0 0 20px #ef444480";
+                                        backgroundColor = "#ef444440";
+                                        boxShadow = "0 0 15px #ef444440";
                                     }
 
                                     return (
@@ -281,7 +281,7 @@ export default function ResultViewer({ imageSrc, predictions, imageWidth, imageH
                                                 height: `${height}%`,
                                                 borderColor,
                                                 backgroundColor,
-                                                zIndex: isRemoveMode && isHovered ? 100 : 10 + idx,
+                                                zIndex: 10 + idx,
                                                 boxShadow
                                             }}
                                             onMouseEnter={() => setHoveredId(uniqueKey)}
@@ -307,8 +307,10 @@ export default function ResultViewer({ imageSrc, predictions, imageWidth, imageH
 
                                             {/* Delete Icon (Only show if Remove Mode and Hovering) */}
                                             {isHovered && isRemoveMode && (
-                                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 p-2 bg-red-600 rounded-none shadow-lg text-white">
-                                                    <Trash2 size={24} />
+                                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-auto flex items-center justify-center w-14 h-14 group">
+                                                    <div className="text-red-100 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] transition-all duration-200 group-hover:scale-125 group-hover:text-red-500 group-hover:drop-shadow-[0_0_10px_rgba(239,68,68,0.6)]">
+                                                        <Trash2 size={24} />
+                                                    </div>
                                                 </div>
                                             )}
                                         </motion.div>
@@ -329,122 +331,124 @@ export default function ResultViewer({ imageSrc, predictions, imageWidth, imageH
                             />
                         )}
                     </div>
-                </div>
 
-                {/* Edit Panel (Right Side) - REFAC T ORED UI */}
-                <div className="flex flex-col gap-3 pointer-events-none z-40 shrink-0 h-[85vh] items-end">
+                    {/* Edit Panel - Attached to Right Side of Image */}
+                    <div className="absolute left-full top-1/2 -translate-y-1/2 ml-4 flex flex-row items-center gap-4 pointer-events-none z-50">
 
-                    {/* Main Edit Toggle */}
-                    <button
-                        onClick={() => setIsEditing(!isEditing)}
-                        className={`pointer-events-auto w-14 h-14 flex items-center justify-center rounded-none shadow-xl transition-all duration-200 border border-slate-700
-                            ${isEditing
-                                ? "bg-blue-600 text-white border-blue-500"
-                                : "bg-black text-slate-400 hover:text-white hover:border-blue-500 hover:shadow-blue-900/20"
-                            }`}
-                        title={isEditing ? "Done Editing" : "Edit Elements"}
-                    >
-                        {isEditing ? <Check size={24} /> : <Pencil size={24} />}
-                    </button>
+                        {/* Main Edit Toggle */}
+                        <button
+                            onClick={() => setIsEditing(!isEditing)}
+                            className={`pointer-events-auto w-14 h-14 flex items-center justify-center rounded-none shadow-xl transition-all duration-200 border border-slate-700
+                                ${isEditing
+                                    ? "bg-blue-600 text-white border-blue-500"
+                                    : "bg-black text-slate-400 hover:text-white hover:border-blue-500 hover:shadow-blue-900/20"
+                                }`}
+                            title={isEditing ? "Done Editing" : "Edit Elements"}
+                        >
+                            {isEditing ? <Check size={24} /> : <Pencil size={24} />}
+                        </button>
 
-                    <AnimatePresence>
-                        {isEditing && (
-                            <motion.div
-                                initial={{ x: 20, opacity: 0 }}
-                                animate={{ x: 0, opacity: 1 }}
-                                exit={{ x: 20, opacity: 0 }}
-                                transition={{ type: "tween", duration: 0.2 }}
-                                className="pointer-events-auto flex flex-col gap-4 bg-black p-4 rounded-none border border-slate-800 shadow-2xl min-w-[240px]"
-                            >
-                                {/* Tool Selection */}
-                                <div className="flex flex-col gap-2">
-                                    <div className="text-[10px] items-center text-slate-500 uppercase tracking-widest font-bold flex gap-2">
-                                        <div className="h-[1px] bg-slate-800 flex-grow"></div>
-                                        Tools
-                                        <div className="h-[1px] bg-slate-800 flex-grow"></div>
+                        <AnimatePresence>
+                            {isEditing && (
+                                <motion.div
+                                    initial={{ x: 20, opacity: 0 }}
+                                    animate={{ x: 0, opacity: 1 }}
+                                    exit={{ x: 20, opacity: 0 }}
+                                    transition={{ type: "tween", duration: 0.2 }}
+                                    className="pointer-events-auto flex flex-col gap-4 bg-black p-4 rounded-none border border-slate-800 shadow-2xl min-w-[240px]"
+                                >
+                                    {/* Tool Selection */}
+                                    <div className="flex flex-col gap-2">
+                                        <div className="text-[10px] items-center text-slate-500 uppercase tracking-widest font-bold flex gap-2">
+                                            <div className="h-[1px] bg-slate-800 flex-grow"></div>
+                                            Tools
+                                            <div className="h-[1px] bg-slate-800 flex-grow"></div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <button
+                                                onClick={() => setActiveTool("add")}
+                                                className={`flex flex-col items-center justify-center p-3 gap-2 border transition-all duration-200
+                                                    ${activeTool === "add"
+                                                        ? "bg-slate-900 border-blue-500 text-blue-500"
+                                                        : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-600 hover:text-white"
+                                                    }`}
+                                            >
+                                                <Plus size={20} />
+                                                <span className="text-xs font-bold uppercase">Add</span>
+                                            </button>
+
+                                            <button
+                                                onClick={() => setActiveTool("remove")}
+                                                className={`flex flex-col items-center justify-center p-3 gap-2 border transition-all duration-200
+                                                    ${activeTool === "remove"
+                                                        ? "bg-slate-900 border-red-500 text-red-500"
+                                                        : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-600 hover:text-white"
+                                                    }`}
+                                            >
+                                                <Trash2 size={20} />
+                                                <span className="text-xs font-bold uppercase">Remove</span>
+                                            </button>
+                                        </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <button
-                                            onClick={() => setActiveTool("add")}
-                                            className={`flex flex-col items-center justify-center p-3 gap-2 border transition-all duration-200
-                                                ${activeTool === "add"
-                                                    ? "bg-slate-900 border-blue-500 text-blue-500"
-                                                    : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-600 hover:text-white"
-                                                }`}
-                                        >
-                                            <Plus size={20} />
-                                            <span className="text-xs font-bold uppercase">Add</span>
-                                        </button>
+                                    {/* Class Selection (Only for Add Tool) */}
+                                    <AnimatePresence mode="popLayout">
+                                        {activeTool === "add" && (
+                                            <motion.div
+                                                initial={{ opacity: 0, height: 0 }}
+                                                animate={{ opacity: 1, height: "auto" }}
+                                                exit={{ opacity: 0, height: 0 }}
+                                                className="flex flex-col gap-2 overflow-hidden"
+                                            >
+                                                <div className="text-[10px] items-center text-slate-500 uppercase tracking-widest font-bold flex gap-2 mt-2">
+                                                    <div className="h-[1px] bg-slate-800 flex-grow"></div>
+                                                    Class
+                                                    <div className="h-[1px] bg-slate-800 flex-grow"></div>
+                                                </div>
 
-                                        <button
-                                            onClick={() => setActiveTool("remove")}
-                                            className={`flex flex-col items-center justify-center p-3 gap-2 border transition-all duration-200
-                                                ${activeTool === "remove"
-                                                    ? "bg-slate-900 border-red-500 text-red-500"
-                                                    : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-600 hover:text-white"
-                                                }`}
-                                        >
-                                            <Trash2 size={20} />
-                                            <span className="text-xs font-bold uppercase">Remove</span>
-                                        </button>
-                                    </div>
-                                </div>
+                                                <div className="flex flex-col gap-1 max-h-[300px] overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin' }}>
+                                                    {availableClasses.map(cls => (
+                                                        <button
+                                                            key={cls}
+                                                            onClick={() => setSelectedClass(cls)}
+                                                            className={`flex items-center justify-between p-3 text-sm transition-all border border-l-4
+                                                                ${selectedClass === cls
+                                                                    ? "bg-slate-900 border-slate-800 border-l-blue-500 text-white"
+                                                                    : "bg-transparent border-transparent border-l-transparent text-slate-400 hover:bg-slate-900 hover:text-white"
+                                                                }`}
+                                                        >
+                                                            {cls}
+                                                            {selectedClass === cls && <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]"></div>}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </motion.div>
+                                        )}
 
-                                {/* Class Selection (Only for Add Tool) */}
-                                <AnimatePresence mode="popLayout">
-                                    {activeTool === "add" && (
-                                        <motion.div
-                                            initial={{ opacity: 0, height: 0 }}
-                                            animate={{ opacity: 1, height: "auto" }}
-                                            exit={{ opacity: 0, height: 0 }}
-                                            className="flex flex-col gap-2 overflow-hidden"
-                                        >
-                                            <div className="text-[10px] items-center text-slate-500 uppercase tracking-widest font-bold flex gap-2 mt-2">
-                                                <div className="h-[1px] bg-slate-800 flex-grow"></div>
-                                                Class
-                                                <div className="h-[1px] bg-slate-800 flex-grow"></div>
-                                            </div>
-
-                                            <div className="flex flex-col gap-1 max-h-[300px] overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin' }}>
-                                                {availableClasses.map(cls => (
-                                                    <button
-                                                        key={cls}
-                                                        onClick={() => setSelectedClass(cls)}
-                                                        className={`flex items-center justify-between p-3 text-sm transition-all border border-l-4
-                                                            ${selectedClass === cls
-                                                                ? "bg-slate-900 border-slate-800 border-l-blue-500 text-white"
-                                                                : "bg-transparent border-transparent border-l-transparent text-slate-400 hover:bg-slate-900 hover:text-white"
-                                                            }`}
-                                                    >
-                                                        {cls}
-                                                        {selectedClass === cls && <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]"></div>}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </motion.div>
-                                    )}
-
-                                    {/* Instructions (For Remove Tool) */}
-                                    {activeTool === "remove" && (
-                                        <motion.div
-                                            initial={{ opacity: 0, height: 0 }}
-                                            animate={{ opacity: 1, height: "auto" }}
-                                            exit={{ opacity: 0, height: 0 }}
-                                            className="p-4 bg-slate-900/50 border border-slate-800 text-center"
-                                        >
-                                            <p className="text-xs text-slate-400 leading-relaxed">
-                                                Click on any highlighted box in the image to remove it permanently from the list.
-                                            </p>
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+                                        {/* Instructions (For Remove Tool) */}
+                                        {activeTool === "remove" && (
+                                            <motion.div
+                                                initial={{ opacity: 0, height: 0 }}
+                                                animate={{ opacity: 1, height: "auto" }}
+                                                exit={{ opacity: 0, height: 0 }}
+                                                className="p-4 bg-slate-900/50 border border-slate-800 text-center"
+                                            >
+                                                <p className="text-xs text-slate-400 leading-relaxed">
+                                                    Click on any highlighted box to remove it.
+                                                </p>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
                 </div>
 
             </div>
+
+
         </div>
     );
 }
