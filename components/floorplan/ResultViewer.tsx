@@ -35,7 +35,18 @@ const COLORS = [
 ];
 
 export default function ResultViewer({ imageSrc, predictions, imageWidth, imageHeight }: ResultViewerProps) {
-    const [localPredictions, setLocalPredictions] = useState<Prediction[]>(predictions);
+    // Helper to normalize class names to Title Case
+    const formatClassName = (name: string) => {
+        if (!name) return "";
+        return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+    };
+
+    const [localPredictions, setLocalPredictions] = useState<Prediction[]>(() =>
+        predictions.map(p => ({
+            ...p,
+            class: formatClassName(p.class)
+        }))
+    );
     const [hoveredId, setHoveredId] = useState<string | null>(null);
     const [hiddenClasses, setHiddenClasses] = useState<Set<string>>(new Set());
 
