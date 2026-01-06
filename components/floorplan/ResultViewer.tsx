@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Pencil, Check, Trash2, Plus, MousePointer2 } from "lucide-react";
+import { Pencil, Check, Trash2, Plus, MousePointer2, Download, X } from "lucide-react";
+import { toPng } from "html-to-image";
 
 export interface Prediction {
     class: string;
@@ -49,9 +50,13 @@ export default function ResultViewer({ imageSrc, predictions, imageWidth, imageH
     );
     const [hoveredId, setHoveredId] = useState<string | null>(null);
     const [hiddenClasses, setHiddenClasses] = useState<Set<string>>(new Set());
+    const captureRef = useRef<HTMLDivElement>(null);
+    // exportRef removed as we capture the main view now
 
     // Edit Mode State
     const [isEditing, setIsEditing] = useState(false);
+    const [showExportModal, setShowExportModal] = useState(false);
+    const [previewImage, setPreviewImage] = useState<string | null>(null);
     const [activeTool, setActiveTool] = useState<"add" | "remove">("add");
     const [selectedClass, setSelectedClass] = useState<string>("Door");
 
@@ -99,7 +104,97 @@ export default function ResultViewer({ imageSrc, predictions, imageWidth, imageH
     // Get all unique classes for the selector, plus some defaults
     const availableClasses = ["Perimeter", "Bathroom", "Window", "Door", "Stairs"];
 
+    const [exportImageSrc, setExportImageSrc] = useState<string>("");
+
+    // --- Image Handling Helpers ---
+
+    const convertBlobToDataUrl = async (blobUrl: string): Promise<string> => {
+        try {
+            const response = await fetch(blobUrl);
+            const blob = await response.blob();
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    if (typeof reader.result === 'string') resolve(reader.result);
+                    else reject(new Error("Failed to convert blob to base64"));
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        } catch (e) {
+            console.error("Image conversion failed", e);
+            return blobUrl; // Fallback
+        }
+    };
+
+    // Effect to convert blob URL to data URL on mount/change
+    useEffect(() => {
+        if (imageSrc && !exportImageSrc) {
+            convertBlobToDataUrl(imageSrc).then(setExportImageSrc);
+        }
+    }, [imageSrc]);
+
     // --- Interaction Handlers ---
+
+    const handleGeneratePreview = async () => {
+        if (!captureRef.current) return;
+
+        try {
+            // Ensure we have a robust Data URL source before capturing
+            let activeSrc = exportImageSrc;
+            if (!activeSrc && imageSrc) {
+                console.log("Generating Data URL for export...");
+                activeSrc = await convertBlobToDataUrl(imageSrc);
+                setExportImageSrc(activeSrc); // Update state for future
+
+                // CRITICAL FIX: Manually update the DOM element immediately to bypass React render cycle lag
+                if (imageRef.current) {
+                    imageRef.current.src = activeSrc;
+                }
+            }
+
+            // Ensure the image element is fully decoded and ready
+            if (imageRef.current) {
+                // Wait for the new source to load if it changed or wasn't ready
+                if (!imageRef.current.complete || imageRef.current.src !== (activeSrc || imageSrc)) {
+                    await new Promise((resolve) => {
+                        if (!imageRef.current) return resolve(null);
+                        imageRef.current.onload = resolve;
+                        imageRef.current.onerror = resolve;
+                        // Timeout just in case
+                        setTimeout(resolve, 500);
+                    });
+                }
+                // Force decode ensuring it's painted
+                try { await imageRef.current.decode(); } catch (e) { }
+            }
+
+            // Generate screenshot
+            const dataUrl = await toPng(captureRef.current, {
+                pixelRatio: 2,
+                backgroundColor: "#000000",
+                filter: (node) => {
+                    if (node instanceof HTMLElement && node.classList.contains('exclude-from-export')) {
+                        return false;
+                    }
+                    return true;
+                }
+            });
+
+            setPreviewImage(dataUrl);
+            setShowExportModal(true);
+        } catch (error) {
+            console.error("Preview generation failed:", error);
+        }
+    };
+
+    const handleSaveImage = () => {
+        if (!previewImage) return;
+        const link = document.createElement('a');
+        link.download = 'floorplan-analysis.png';
+        link.href = previewImage;
+        link.click();
+    };
 
     const handleMouseDown = (e: React.MouseEvent) => {
         // Only allow drawing if in Edit Mode AND Add Tool is selected
@@ -174,12 +269,22 @@ export default function ResultViewer({ imageSrc, predictions, imageWidth, imageH
         setLocalPredictions(prev => prev.filter(p => p !== predToRemove));
     };
 
+
     return (
         <div className="w-full h-screen flex items-center justify-center relative p-8">
 
-            <div className="flex items-center justify-center gap-10 max-w-full max-h-full">
+            {/* Download Button */}
+            <button
+                onClick={handleGeneratePreview}
+                className="absolute top-8 right-8 z-50 p-3 bg-black/50 backdrop-blur-md border border-white/10 rounded-full text-white hover:bg-white/10 hover:scale-110 active:scale-95 transition-all shadow-xl group"
+                title="Save Image"
+            >
+                <Download size={24} className="group-hover:text-blue-400 transition-colors" />
+            </button>
+
+            <div ref={captureRef} className="flex items-center justify-center gap-10 max-w-full max-h-full p-4 bg-black"> {/* Added bg-black to ensure captured background is black */}
                 {/* Summary Panel - Dynamic Side Section */}
-                <div className="flex flex-col gap-2 pointer-events-none z-40 shrink-0 min-w-[160px]">
+                <div className="flex flex-col gap-2 pointer-events-none z-40 shrink-0 min-w-[160px] border-r border-dashed border-white/10 pr-6 mr-2">
                     <AnimatePresence>
                         {Object.entries(summaryData).map(([className, data]) => {
                             const color = classColors.get(className);
@@ -194,7 +299,7 @@ export default function ResultViewer({ imageSrc, predictions, imageWidth, imageH
                                         stiffness: 100
                                     }}
                                     onClick={() => toggleClass(className)}
-                                    className={`pointer-events-auto flex items-center justify-between gap-4 bg-black p-3 border transition-all duration-200 cursor-pointer group
+                                    className={`pointer-events-auto flex items-center justify-between gap-4 bg-slate-900/80 backdrop-blur-sm p-3 border transition-all duration-200 cursor-pointer group
                                         ${hiddenClasses.has(className)
                                             ? "opacity-50 grayscale border-slate-900"
                                             : "border-slate-800 hover:border-blue-500 hover:shadow-[0_0_15px_rgba(59,130,246,0.2)]"
@@ -211,7 +316,7 @@ export default function ResultViewer({ imageSrc, predictions, imageWidth, imageH
                                             {className}
                                         </span>
                                     </div>
-                                    <span className={`text-xl font-bold ${hiddenClasses.has(className) ? "text-slate-700" : "text-white"}`}>
+                                    <span className={`text-xl font-bold font-mono-nums ${hiddenClasses.has(className) ? "text-slate-700" : "text-white"}`}>
                                         {data.count}
                                     </span>
                                 </motion.div>
@@ -231,10 +336,11 @@ export default function ResultViewer({ imageSrc, predictions, imageWidth, imageH
                     {/* Image rendering */}
                     <img
                         ref={imageRef}
-                        src={imageSrc}
+                        src={exportImageSrc || imageSrc}
                         alt="Floor Plan"
-                        className={`max-h-[85vh] max-w-full w-auto object-contain rounded-lg shadow-2xl transition-all duration-300 ${isEditing && activeTool === "add" ? "cursor-crosshair opacity-90" : ""} ${isEditing && activeTool === "remove" ? "opacity-90 grayscale-[0.3]" : ""}`}
+                        className={`max-h-[85vh] max-w-full w-auto object-contain rounded-lg shadow-2xl shadow-blue-900/20 transition-all duration-300 ${isEditing && activeTool === "add" ? "cursor-crosshair opacity-90" : ""} ${isEditing && activeTool === "remove" ? "opacity-90 grayscale-[0.3]" : ""}`}
                         draggable={false}
+                        crossOrigin="anonymous"
                     />
 
                     {/* Overlay Layer */}
@@ -281,7 +387,7 @@ export default function ResultViewer({ imageSrc, predictions, imageWidth, imageH
                                                 damping: 20
                                             }}
                                             exit={{ opacity: 0, scale: 0 }}
-                                            className={`absolute border-[3px] md:border-4 pointer-events-auto transition-colors duration-200 
+                                            className={`absolute border-[3px] md:border-4 pointer-events-auto transition-colors duration-200
                                                 ${!isEditing ? "cursor-pointer group" : ""}
                                                 ${isRemoveMode ? "cursor-pointer hover:z-50" : ""}
                                             `}
@@ -343,101 +449,150 @@ export default function ResultViewer({ imageSrc, predictions, imageWidth, imageH
                         )}
                     </div>
 
-                    {/* Edit Panel - Attached to Right Side of Image */}
-                    <div className="absolute left-full top-1/2 -translate-y-1/2 ml-4 flex flex-row items-center gap-4 pointer-events-none z-50">
+                    {/* Edit Panel - Attached to Right Side of Image - Tagged for exclusion */}
+                    <div
+                        className="absolute left-full top-1/2 -translate-y-1/2 ml-4 flex flex-row items-center gap-4 pointer-events-none z-50 exclude-from-export"
+                        data-html2canvas-ignore="true"
+                    >
 
-                        {/* Main Edit Toggle */}
-                        <button
-                            onClick={() => setIsEditing(!isEditing)}
-                            className={`pointer-events-auto w-14 h-14 flex items-center justify-center rounded-none shadow-xl transition-all duration-200 border border-slate-700
+                        <motion.div
+                            layout
+                            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                            onClick={() => !isEditing && setIsEditing(true)}
+                            className={`pointer-events-auto transition-colors duration-200 border border-slate-700 shadow-2xl overflow-hidden
                                 ${isEditing
-                                    ? "bg-blue-600 text-white border-blue-500"
-                                    : "bg-black text-slate-400 hover:text-white hover:border-blue-500 hover:shadow-blue-900/20"
-                                }`}
-                            title={isEditing ? "Done Editing" : "Edit Elements"}
+                                    ? "bg-slate-950/80 backdrop-blur-md p-5 rounded-2xl border-white/10 min-w-[260px] cursor-default"
+                                    : "bg-black hover:border-blue-500 w-14 h-14 rounded-full flex items-center justify-center cursor-pointer hover:scale-110 active:scale-95 shadow-blue-900/20"
+                                }
+                            `}
                         >
-                            {isEditing ? <Check size={24} /> : <Pencil size={24} />}
-                        </button>
-
-                        <AnimatePresence>
-                            {isEditing && (
-                                <motion.div
-                                    initial={{ x: 20, opacity: 0 }}
-                                    animate={{ x: 0, opacity: 1 }}
-                                    exit={{ x: 20, opacity: 0 }}
-                                    transition={{ type: "tween", duration: 0.2 }}
-                                    className="pointer-events-auto flex flex-col gap-4 bg-black p-4 rounded-none border border-slate-800 shadow-2xl min-w-[240px]"
-                                >
-                                    {/* Tool Selection */}
-                                    <div className="flex flex-col gap-2">
-                                        <div className="text-[10px] items-center text-slate-500 uppercase tracking-widest font-bold flex gap-2">
-                                            <div className="h-[1px] bg-slate-800 flex-grow"></div>
-                                            Tools
-                                            <div className="h-[1px] bg-slate-800 flex-grow"></div>
+                            <AnimatePresence mode="popLayout" initial={false}>
+                                {isEditing ? (
+                                    <motion.div
+                                        key="panel-content"
+                                        initial={{ opacity: 0, scale: 0.9 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.9, filter: "blur(10px)", transition: { duration: 0.1 } }}
+                                        className="flex flex-col gap-6 min-w-[260px]"
+                                    >
+                                        {/* Header with Done Button */}
+                                        <div className="flex items-center justify-between">
+                                            <h3 className="text-white font-bold text-lg tracking-tight">Edit Mode</h3>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setIsEditing(false);
+                                                }}
+                                                className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-full transition-all shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 active:scale-95 outline-none focus:outline-none focus:ring-0"
+                                            >
+                                                <Check size={14} />
+                                                DONE
+                                            </button>
                                         </div>
 
-                                        <div className="grid grid-cols-2 gap-2">
+                                        {/* Tools Segmented Control */}
+                                        <div className="flex bg-slate-900/50 p-1 rounded-lg border border-white/5">
                                             <button
                                                 onClick={() => setActiveTool("add")}
-                                                className={`flex flex-col items-center justify-center p-3 gap-2 border transition-all duration-200
+                                                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md transition-all text-xs font-bold uppercase tracking-wide outline-none focus:outline-none focus:ring-0
                                                     ${activeTool === "add"
-                                                        ? "bg-slate-900 border-blue-500 text-blue-500"
-                                                        : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-600 hover:text-white"
+                                                        ? "bg-slate-800 text-white shadow-md border border-white/5"
+                                                        : "text-slate-500 hover:text-slate-300"
                                                     }`}
                                             >
-                                                <Plus size={20} />
-                                                <span className="text-xs font-bold uppercase">Add</span>
+                                                <Plus size={14} />
+                                                Add
                                             </button>
-
                                             <button
                                                 onClick={() => setActiveTool("remove")}
-                                                className={`flex flex-col items-center justify-center p-3 gap-2 border transition-all duration-200
+                                                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md transition-all text-xs font-bold uppercase tracking-wide outline-none focus:outline-none focus:ring-0
                                                     ${activeTool === "remove"
-                                                        ? "bg-slate-900 border-red-500 text-red-500"
-                                                        : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-600 hover:text-white"
+                                                        ? "bg-slate-800 text-red-400 shadow-md border border-white/5"
+                                                        : "text-slate-500 hover:text-slate-300"
                                                     }`}
                                             >
-                                                <Trash2 size={20} />
-                                                <span className="text-xs font-bold uppercase">Remove</span>
+                                                <Trash2 size={14} />
+                                                Remove
                                             </button>
                                         </div>
-                                    </div>
 
-                                    {/* Class Selection (Only for Add Tool) */}
-                                    {/* Class Selection - Persistent to maintain layout */}
-                                    <div className={`flex flex-col gap-2 overflow-hidden transition-all duration-200 ${activeTool === "remove" ? "opacity-50 grayscale pointer-events-none" : ""}`}>
-                                        <div className="text-[10px] items-center text-slate-500 uppercase tracking-widest font-bold flex gap-2 mt-2">
-                                            <div className="h-[1px] bg-slate-800 flex-grow"></div>
-                                            Class
-                                            <div className="h-[1px] bg-slate-800 flex-grow"></div>
+                                        {/* Class Selection List */}
+                                        <div className={`flex flex-col gap-1 transition-all duration-300 ${activeTool === "remove" ? "opacity-30 pointer-events-none blur-sm" : ""}`}>
+                                            <div className="flex flex-col gap-1 max-h-[300px] overflow-y-auto pr-1" style={{ scrollbarWidth: 'none' }}>
+                                                {availableClasses.map(cls => (
+                                                    <button
+                                                        key={cls}
+                                                        onClick={() => setSelectedClass(cls)}
+                                                        className={`group flex items-center justify-between p-3 rounded-lg text-sm transition-all border border-transparent outline-none ring-0 focus:outline-none focus:ring-0
+                                                            ${selectedClass === cls
+                                                                ? "bg-blue-500/10 border-blue-500/30 text-blue-400"
+                                                                : "hover:bg-white/5 text-slate-400 hover:text-white"
+                                                            }`}
+                                                    >
+                                                        <span className="font-medium">{cls}</span>
+                                                        {selectedClass === cls && (
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
+                                                        )}
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
-
-                                        <div className="flex flex-col gap-1 max-h-[300px] overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin' }}>
-                                            {availableClasses.map(cls => (
-                                                <button
-                                                    key={cls}
-                                                    onClick={() => setSelectedClass(cls)}
-                                                    className={`flex items-center justify-between p-3 text-sm transition-all border border-l-4
-                                                        ${selectedClass === cls
-                                                            ? "bg-slate-900 border-slate-800 border-l-blue-500 text-white"
-                                                            : "bg-transparent border-transparent border-l-transparent text-slate-400 hover:bg-slate-900 hover:text-white"
-                                                        }`}
-                                                >
-                                                    {cls}
-                                                    {selectedClass === cls && <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]"></div>}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
+                                    </motion.div>
+                                ) : (
+                                    <motion.div
+                                        key="pencil-icon"
+                                        initial={{ opacity: 0, rotate: -90 }}
+                                        animate={{ opacity: 1, rotate: 0 }}
+                                        exit={{ opacity: 0, rotate: 90 }}
+                                        transition={{ duration: 0.2 }}
+                                    >
+                                        <Pencil size={24} className="text-white" />
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </motion.div>
                     </div>
                 </div>
 
             </div>
 
+            {/* --- EXPORT PREVIEW MODAL --- */}
+            <AnimatePresence>
+                {showExportModal && previewImage && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md p-8"
+                    >
+                        {/* Modal Header actions */}
+                        <div className="absolute top-8 right-8 flex items-center gap-4 z-[110]">
+                            <button
+                                onClick={() => setShowExportModal(false)}
+                                className="p-3 text-slate-400 hover:text-white transition-colors"
+                            >
+                                <X size={24} />
+                            </button>
+                            <button
+                                onClick={handleSaveImage}
+                                className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-full transition-all shadow-lg hover:shadow-blue-500/50 active:scale-95"
+                            >
+                                <Download size={20} />
+                                SAVE IMAGE
+                            </button>
+                        </div>
 
+                        {/* Image Preview */}
+                        <div className="w-full h-full flex items-center justify-center overflow-auto p-12">
+                            <img
+                                src={previewImage}
+                                alt="Export Preview"
+                                className="max-w-full max-h-full object-contain rounded-xl border border-white/10 shadow-2xl"
+                            />
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

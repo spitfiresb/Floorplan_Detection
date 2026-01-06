@@ -40,11 +40,11 @@ function UploadZone({ onFileSelect, isProcessing }: { onFileSelect: (file: File)
         <div className="flex flex-col items-center gap-6 animate-fade-in">
             <div
                 className={`
-                    group relative overflow-hidden rounded-none border transition-all duration-200 ease-out cursor-pointer
-                    w-64 h-16 flex items-center justify-center
+                    group relative overflow-hidden rounded-3xl border-2 border-dashed transition-all duration-300 ease-out cursor-pointer
+                    w-full max-w-2xl h-80 flex flex-col items-center justify-center gap-4
                     ${isDragging
-                        ? "border-blue-500 bg-blue-600 shadow-xl shadow-blue-500/20 translate-x-1 -translate-y-1"
-                        : "border-slate-700 bg-slate-900/50 hover:bg-blue-600 hover:border-blue-600 hover:shadow-xl hover:shadow-blue-500/20 hover:translate-x-1 hover:-translate-y-1"
+                        ? "border-blue-500 bg-blue-500/10 scale-[1.02]"
+                        : "border-slate-700 bg-slate-950/30 hover:bg-slate-900/50 hover:border-blue-500/50 hover:shadow-2xl hover:shadow-blue-500/10"
                     }
                     ${isProcessing ? "opacity-50 pointer-events-none grayscale" : ""}
                 `}
@@ -63,13 +63,26 @@ function UploadZone({ onFileSelect, isProcessing }: { onFileSelect: (file: File)
                     disabled={isProcessing}
                 />
 
-                <div className="relative z-10 flex flex-col items-center gap-2">
+                <div className="relative z-10 flex flex-col items-center gap-4">
                     {isProcessing ? (
-                        <Loader2 className="h-5 w-5 text-white animate-spin" />
+                        <div className="flex flex-col items-center gap-4">
+                            <Loader2 className="h-10 w-10 text-blue-500 animate-spin" />
+                            <span className="text-blue-500 font-medium animate-pulse">Processing Image...</span>
+                        </div>
                     ) : (
-                        <span className="font-bold text-sm uppercase tracking-wider text-slate-300 group-hover:text-white transition-colors">
-                            Upload Image
-                        </span>
+                        <>
+                            <div className={`p-6 rounded-full bg-slate-900 border border-slate-800 group-hover:border-blue-500/50 group-hover:scale-110 transition-all duration-300 ${isDragging ? "border-blue-500 bg-blue-500/20 text-blue-400" : "text-slate-400 group-hover:text-blue-400"}`}>
+                                <Upload className="w-10 h-10" />
+                            </div>
+                            <div className="flex flex-col items-center gap-1">
+                                <span className="font-bold text-lg text-slate-200 group-hover:text-white transition-colors">
+                                    Drop your floor plan here
+                                </span>
+                                <span className="text-slate-500 text-sm font-medium">
+                                    or click to browse
+                                </span>
+                            </div>
+                        </>
                     )}
                 </div>
 
@@ -85,7 +98,7 @@ function UploadZone({ onFileSelect, isProcessing }: { onFileSelect: (file: File)
                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest">
                     Or try one of these
                 </p>
-                <div className="flex gap-4">
+                <div className="grid grid-cols-3 gap-6 w-full max-w-2xl">
                     {[1, 2, 3].map((i) => (
                         <button
                             key={i}
@@ -99,21 +112,28 @@ function UploadZone({ onFileSelect, isProcessing }: { onFileSelect: (file: File)
                                     console.error("Error loading sample:", error);
                                 }
                             }}
-                            className="group relative w-20 h-20 rounded-lg overflow-hidden border border-slate-700 hover:border-blue-500 transition-all cursor-pointer hover:scale-105 active:scale-95"
+                            className="group/thumb relative aspect-square rounded-2xl overflow-hidden border border-slate-800 hover:border-blue-500 transition-all duration-300 cursor-pointer hover:shadow-lg hover:shadow-blue-500/20"
                             disabled={isProcessing}
                         >
                             <img
                                 src={`/examples/sample_${i}.png`}
                                 alt={`Sample ${i}`}
-                                className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity"
+                                className="w-full h-full object-cover opacity-50 grayscale group-hover/thumb:opacity-100 group-hover/thumb:grayscale-0 transition-all duration-500 scale-105 group-hover/thumb:scale-100"
                             />
                             {/* Overlay for hover state */}
-                            <div className="absolute inset-0 bg-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <div className="absolute inset-0 bg-blue-500/0 group-hover/thumb:bg-blue-500/10 transition-colors duration-300" />
+
+                            {/* Hover Badge */}
+                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/thumb:opacity-100 transition-all duration-300 transform translate-y-4 group-hover/thumb:translate-y-0">
+                                <span className="px-3 py-1 bg-black/80 backdrop-blur text-white text-xs font-bold rounded-full border border-white/10">
+                                    Try This
+                                </span>
+                            </div>
                         </button>
                     ))}
                 </div>
             </div>
-        </div>
+        </div >
     );
 }
 

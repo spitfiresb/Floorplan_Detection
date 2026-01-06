@@ -23,9 +23,9 @@ export default function Home() {
         <div className="flex flex-col sm:flex-row gap-4 w-full justify-center">
           <Link
             href="/dashboard"
-            className="inline-flex h-12 items-center justify-center rounded-none bg-blue-600 px-8 text-sm font-medium text-white transition-all hover:bg-blue-700 hover:translate-x-1 hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            className="inline-flex h-14 items-center justify-center rounded-none bg-blue-600 px-10 text-base font-bold text-white transition-all shadow-[0_0_20px_rgba(37,99,235,0.4)] hover:shadow-[0_0_30px_rgba(37,99,235,0.6)] hover:bg-blue-500 hover:translate-x-1 hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
           >
-            Try It Now <ArrowRight className="ml-2 h-4 w-4" />
+            Try It Now <ArrowRight className="ml-2 h-5 w-5" />
           </Link>
           <Link
             href="https://roboflow.com"
@@ -39,8 +39,8 @@ export default function Home() {
         {/* Feature Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-20 text-left">
           {/* Card 1 */}
-          <div className="group relative p-6 bg-slate-950 border border-slate-800 hover:border-blue-500 transition-colors duration-300">
-            <div className="absolute top-0 right-0 w-8 h-8 border-t border-r border-slate-700 group-hover:border-blue-500 transition-colors"></div>
+          <div className="group relative p-8 bg-slate-950/40 backdrop-blur-md border border-white/5 hover:border-blue-500 transition-colors duration-300">
+            <div className="absolute top-0 right-0 w-8 h-8 border-t border-r border-white/10 group-hover:border-blue-500 transition-colors"></div>
             <div className="mb-4 text-blue-500">
               <Scan className="h-8 w-8" />
             </div>
@@ -49,8 +49,8 @@ export default function Home() {
           </div>
 
           {/* Card 2 */}
-          <div className="group relative p-6 bg-slate-950 border border-slate-800 hover:border-purple-500 transition-colors duration-300">
-            <div className="absolute top-0 right-0 w-8 h-8 border-t border-r border-slate-700 group-hover:border-purple-500 transition-colors"></div>
+          <div className="group relative p-8 bg-slate-950/40 backdrop-blur-md border border-white/5 hover:border-purple-500 transition-colors duration-300">
+            <div className="absolute top-0 right-0 w-8 h-8 border-t border-r border-white/10 group-hover:border-purple-500 transition-colors"></div>
             <div className="mb-4 text-purple-500">
               <Layout className="h-8 w-8" />
             </div>
@@ -59,8 +59,8 @@ export default function Home() {
           </div>
 
           {/* Card 3 */}
-          <div className="group relative p-6 bg-slate-950 border border-slate-800 hover:border-green-500 transition-colors duration-300">
-            <div className="absolute top-0 right-0 w-8 h-8 border-t border-r border-slate-700 group-hover:border-green-500 transition-colors"></div>
+          <div className="group relative p-8 bg-slate-950/40 backdrop-blur-md border border-white/5 hover:border-green-500 transition-colors duration-300">
+            <div className="absolute top-0 right-0 w-8 h-8 border-t border-r border-white/10 group-hover:border-green-500 transition-colors"></div>
             <div className="mb-4 text-green-500">
               <ShieldCheck className="h-8 w-8" />
             </div>

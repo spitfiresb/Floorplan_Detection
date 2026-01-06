@@ -20,7 +20,23 @@
 }
 
 body {
-  background: var(--background);
+  /* Dark architectural grid pattern */
+  background-color: #050505;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    radial-gradient(circle at center, rgba(30, 30, 40, 0.8) 0%, rgba(5, 5, 5, 1) 70%);
+  background-size: 40px 40px, 40px 40px, 100% 100%;
+  background-position: center center;
+  background-attachment: fixed;
+
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  min-height: 100vh;
+}
+
+/* Utilities for monospace numbers */
+@utility font-mono-nums {
+  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', 'Roboto Mono', monospace;
+  font-variant-numeric: tabular-nums;
 }
