@@ -41,7 +41,9 @@ export const Viewer: React.FC<ViewerProps> = ({ image, data }) => {
 
   // Sync elements if data changes (e.g. new upload)
   useEffect(() => {
-    setElements(data.elements);
+    // Sort elements by xmin (index 1 of box_2d) to ensure left-to-right animation
+    const sorted = [...data.elements].sort((a, b) => a.box_2d[1] - b.box_2d[1]);
+    setElements(sorted);
   }, [data]);
 
   const toggleLayer = (key: string) => {
@@ -138,6 +140,21 @@ export const Viewer: React.FC<ViewerProps> = ({ image, data }) => {
     return acc;
   }, {} as Record<string, number>);
 
+  const boxVariants = {
+    hidden: { opacity: 0, scale: 0.8 },
+    visible: (i: number) => ({
+      opacity: 1,
+      scale: 1,
+      transition: {
+        delay: i * 0.1, // Stagger effect
+        duration: 0.5,
+        type: "spring" as const,
+        stiffness: 200,
+        damping: 15
+      }
+    })
+  };
+
   return (
     <div className="w-full h-full flex flex-col lg:flex-row gap-8 p-6 max-w-[1600px] mx-auto relative overflow-hidden">
       {/* Left Sidebar: Stats (View Mode) or Legend */}
@@ -191,11 +208,16 @@ export const Viewer: React.FC<ViewerProps> = ({ image, data }) => {
           />
 
           {/* Overlay Layers */}
-          {elements.map((el, idx) => (
-            activeLayers[el.type] && (
-              <div
-                key={idx}
-                className={`absolute border-[3px] opacity-70 hover:opacity-100 transition-all z-10 animate-in zoom-in-50 duration-500 ease-out 
+          {elements
+            .filter(el => activeLayers[el.type])
+            .map((el, idx) => (
+              <motion.div
+                key={el.id}
+                custom={idx}
+                variants={boxVariants}
+                initial="hidden"
+                animate="visible"
+                className={`absolute border-[3px] border-transparent opacity-70 hover:opacity-100 z-10 
                             ${editAction === 'remove' ? 'cursor-no-drop hover:bg-red-500/20 hover:border-red-500' : 'cursor-pointer'}
                         `}
                 style={{
@@ -218,9 +240,8 @@ export const Viewer: React.FC<ViewerProps> = ({ image, data }) => {
                     <Minus className="w-6 h-6 text-red-600 bg-white rounded-full p-1 border border-red-600" />
                   </div>
                 )}
-              </div>
-            )
-          ))}
+              </motion.div>
+            ))}
 
           {/* Drag Preview Box */}
           {dragStart && currentDrag && editAction === 'add' && (
