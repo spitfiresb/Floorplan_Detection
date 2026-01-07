@@ -142,17 +142,27 @@ export const Viewer: React.FC<ViewerProps> = ({ image, data }) => {
 
   const boxVariants = {
     hidden: { opacity: 0, scale: 0.8 },
-    visible: (i: number) => ({
+    visible: (custom: { i: number, isManual: boolean }) => ({
       opacity: 1,
       scale: 1,
       transition: {
-        delay: i * 0.1, // Stagger effect
-        duration: 0.5,
+        delay: custom.isManual ? 0 : custom.i * 0.1, // Stagger effect only for initial load
+        duration: custom.isManual ? 0.2 : 0.5, // Faster duration for manual add
         type: "spring" as const,
         stiffness: 200,
         damping: 15
       }
-    })
+    }),
+    exit: {
+      opacity: 0,
+      scale: 0.8,
+      transition: {
+        duration: 0.3,
+        type: "spring" as const,
+        stiffness: 200,
+        damping: 20
+      }
+    }
   };
 
   return (
@@ -171,7 +181,7 @@ export const Viewer: React.FC<ViewerProps> = ({ image, data }) => {
             {(Object.keys(COLORS) as Array<keyof typeof COLORS>).map(type => {
               const count = currentSummary[type] || 0;
               // Hide if count is 0
-              if (count === 0 && !activeLayers[type]) return null;
+              if (count === 0) return null;
 
               return (
                 <div key={type} className="flex items-center justify-between group cursor-pointer" onClick={() => toggleLayer(type)}>
@@ -208,40 +218,43 @@ export const Viewer: React.FC<ViewerProps> = ({ image, data }) => {
           />
 
           {/* Overlay Layers */}
-          {elements
-            .filter(el => activeLayers[el.type])
-            .map((el, idx) => (
-              <motion.div
-                key={el.id}
-                custom={idx}
-                variants={boxVariants}
-                initial="hidden"
-                animate="visible"
-                className={`absolute border-[3px] border-transparent opacity-70 hover:opacity-100 z-10 
-                            ${editAction === 'remove' ? 'cursor-no-drop hover:bg-red-500/20 hover:border-red-500' : 'cursor-pointer'}
+          <AnimatePresence>
+            {elements
+              .filter(el => activeLayers[el.type])
+              .map((el, idx) => (
+                <motion.div
+                  key={el.id}
+                  custom={{ i: idx, isManual: el.id.startsWith('custom-') }}
+                  variants={boxVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                  className={`absolute border-[3px] border-transparent opacity-70 hover:opacity-100 z-10 
+                            ${editAction === 'remove' ? 'cursor-no-drop hover:bg-red-500/20 hover:!border-red-500' : 'cursor-pointer'}
                         `}
-                style={{
-                  ...getStyleForBox(el.box_2d),
-                  borderColor: editAction === 'remove' ? undefined : (COLORS[el.type as keyof typeof COLORS] || 'black'),
-                  boxShadow: '0 0 0 1px rgba(255,255,255,0.3)'
-                }}
-                title={`${el.label} (${el.type})`}
-                onClick={(e) => handleBoxClick(el.id, e)}
-              >
-                {/* Label on hover - only show if not removing */}
-                {editAction !== 'remove' && (
-                  <div className="opacity-0 hover:opacity-100 absolute -bottom-8 left-1/2 -translate-x-1/2 bg-ink text-white text-xs px-2 py-1 rounded font-sans whitespace-nowrap z-20 pointer-events-none transition-opacity">
-                    {el.type}
-                  </div>
-                )}
-                {/* Remove Icon overlay */}
-                {editAction === 'remove' && (
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100">
-                    <Minus className="w-6 h-6 text-red-600 bg-white rounded-full p-1 border border-red-600" />
-                  </div>
-                )}
-              </motion.div>
-            ))}
+                  style={{
+                    ...getStyleForBox(el.box_2d),
+                    borderColor: COLORS[el.type as keyof typeof COLORS] || 'black',
+                    boxShadow: '0 0 0 1px rgba(255,255,255,0.3)'
+                  }}
+                  title={`${el.label} (${el.type})`}
+                  onClick={(e) => handleBoxClick(el.id, e)}
+                >
+                  {/* Label on hover - only show if not removing */}
+                  {editAction !== 'remove' && (
+                    <div className="opacity-0 hover:opacity-100 absolute -bottom-8 left-1/2 -translate-x-1/2 bg-ink text-white text-xs px-2 py-1 rounded font-sans whitespace-nowrap z-20 pointer-events-none transition-opacity">
+                      {el.type}
+                    </div>
+                  )}
+                  {/* Remove Icon overlay */}
+                  {editAction === 'remove' && (
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100">
+                      <Minus className="w-6 h-6 text-red-600 bg-white rounded-full p-1 border border-red-600" />
+                    </div>
+                  )}
+                </motion.div>
+              ))}
+          </AnimatePresence>
 
           {/* Drag Preview Box */}
           {dragStart && currentDrag && editAction === 'add' && (

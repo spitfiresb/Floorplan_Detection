@@ -8,7 +8,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  
+
   /* Fonts */
   --font-hand: "Patrick Hand", cursive;
   --font-sans: "Inter", sans-serif;
@@ -22,9 +22,9 @@
   --color-sketch-orange: #f5a623;
 
   /* Shadows */
-  --shadow-sketch: 3px 3px 0px 0px rgba(0,0,0,0.8);
-  --shadow-sketch-hover: 5px 5px 0px 0px rgba(0,0,0,0.8);
-  --shadow-sketch-sm: 2px 2px 0px 0px rgba(0,0,0,0.8);
+  --shadow-sketch: 3px 3px 0px 0px rgba(0, 0, 0, 0.8);
+  --shadow-sketch-hover: 5px 5px 0px 0px rgba(0, 0, 0, 0.8);
+  --shadow-sketch-sm: 2px 2px 0px 0px rgba(0, 0, 0, 0.8);
 }
 
 body {
@@ -40,28 +40,69 @@ body {
 
 /* Animations */
 @keyframes fade-in {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
+
 .animate-fade-in {
   animation: fade-in 0.5s ease-out forwards;
 }
+
 .animate-fade-in-up {
   animation: fade-in 0.7s ease-out forwards;
 }
 
 @keyframes fade-in-right {
-  from { opacity: 0; transform: translateX(20px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
+
 .animate-fade-in-right {
   animation: fade-in-right 0.3s ease-out forwards;
 }
 
 @keyframes spin-slow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
+
 .animate-spin-slow {
-    animation: spin-slow 3s linear infinite;
+  animation: spin-slow 3s linear infinite;
+}
+
+@layer utilities {
+  @keyframes blink {
+
+    0%,
+    100% {
+      opacity: 1;
+    }
+
+    50% {
+      opacity: 0;
+    }
+  }
+
+  .animate-blink {
+    animation: blink 1s step-end infinite;
+  }
 }

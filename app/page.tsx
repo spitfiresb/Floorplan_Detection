@@ -81,9 +81,10 @@ export default function Home() {
       </main>
 
       <footer className="w-full text-center py-8 border-t-2 border-gray-200 mt-auto bg-white/50">
-        <p className="font-hand text-lg text-gray-500">
-          Powered by Gemini 2.0 Flash &bull; Built with React & Tailwind
-        </p>
+        <div className="flex flex-col gap-2 font-hand text-lg text-gray-500">
+          <p>Designed by <span className="text-sketch-pink font-bold">Stitch</span></p>
+          <p className="text-sm">Powered by Roboflow</p>
+        </div>
       </footer>
     </div>
   );

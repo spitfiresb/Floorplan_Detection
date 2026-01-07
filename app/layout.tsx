@@ -14,7 +14,7 @@ const patrickHand = Patrick_Hand({
 });
 
 export const metadata: Metadata = {
-  title: "FloorPlan AI - Intelligent Architectural Analysis",
+  title: "FloorSense - Intelligent Architectural Analysis",
   description: "Upload floor plans and get instant AI-powered detection of rooms, doors, and windows.",
 };
 
