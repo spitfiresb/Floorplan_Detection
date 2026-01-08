@@ -19,9 +19,16 @@ const COLORS = {
   furniture: '#95a5a6'
 };
 
+
+
+// Local interface for rendering to handle sorting vs animation order
+interface RenderableElement extends PlanElement {
+  animationIndex: number; // For left-to-right animation sequence
+}
+
 export const Viewer: React.FC<ViewerProps> = ({ image, data }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [elements, setElements] = useState<PlanElement[]>(data.elements);
+  const [elements, setElements] = useState<RenderableElement[]>([]);
   const [activeLayers, setActiveLayers] = useState<Record<string, boolean>>({
     perimeter: true,
     bathroom: true,
@@ -41,9 +48,25 @@ export const Viewer: React.FC<ViewerProps> = ({ image, data }) => {
 
   // Sync elements if data changes (e.g. new upload)
   useEffect(() => {
-    // Sort elements by xmin (index 1 of box_2d) to ensure left-to-right animation
-    const sorted = [...data.elements].sort((a, b) => a.box_2d[1] - b.box_2d[1]);
-    setElements(sorted);
+    // 1. First sort by xmin to establish the left-to-right "pop up" order
+    const xSorted = [...data.elements].sort((a, b) => a.box_2d[1] - b.box_2d[1]);
+
+    // 2. Map to RenderableElement AND then Sort by Area DESC (Large -> Small)
+    // This ensures larger elements (perimeter) are rendered first (bottom of stack)
+    // and smaller elements (doors) are rendered last (top of stack).
+    const sizeSorted: RenderableElement[] = xSorted.map((el, index) => ({
+      ...el,
+      animationIndex: index
+    })).sort((a, b) => {
+      const areaA = (a.box_2d[2] - a.box_2d[0]) * (a.box_2d[3] - a.box_2d[1]);
+      const areaB = (b.box_2d[2] - b.box_2d[0]) * (b.box_2d[3] - b.box_2d[1]);
+      // If perimeter, treat as infinite area to ensure it's always at the bottom (first in array)
+      const valA = a.type === 'perimeter' ? Number.MAX_SAFE_INTEGER : areaA;
+      const valB = b.type === 'perimeter' ? Number.MAX_SAFE_INTEGER : areaB;
+      return valB - valA; // Descending
+    });
+
+    setElements(sizeSorted);
   }, [data]);
 
   const toggleLayer = (key: string) => {
@@ -107,12 +130,17 @@ export const Viewer: React.FC<ViewerProps> = ({ image, data }) => {
 
     // Min size check to avoid accidental clicks creating tiny boxes
     if (Math.abs(xmax - xmin) > 10 && Math.abs(ymax - ymin) > 10) {
-      const newEl = {
+      const newEl: RenderableElement = {
         id: `custom-${Date.now()}`,
         type: selectedType,
         label: `${selectedType} (Manual)`,
-        box_2d: [ymin, xmin, ymax, xmax]
+        box_2d: [ymin, xmin, ymax, xmax],
+        animationIndex: elements.length // display last in animation sequence
       };
+      // For manual add, we should probably re-sort or just append. 
+      // Since it's user interaction, appending to TOP (end of array) is standard for "newest on top".
+      // But for consistent Area sorting, we might want to insert it correctly.
+      // For now, let's just append it to the end so it's on top of everything nicely.
       setElements([...elements, newEl]);
     }
 
@@ -146,7 +174,7 @@ export const Viewer: React.FC<ViewerProps> = ({ image, data }) => {
       opacity: 1,
       scale: 1,
       transition: {
-        delay: custom.isManual ? 0 : custom.i * 0.1, // Stagger effect only for initial load
+        delay: custom.isManual ? 0 : custom.i * 0.1, // Stagger effect based on X-order index
         duration: custom.isManual ? 0.2 : 0.5, // Faster duration for manual add
         type: "spring" as const,
         stiffness: 200,
@@ -221,29 +249,36 @@ export const Viewer: React.FC<ViewerProps> = ({ image, data }) => {
           <AnimatePresence>
             {elements
               .filter(el => activeLayers[el.type])
-              .map((el, idx) => (
+              .map((el) => (
                 <motion.div
                   key={el.id}
-                  custom={{ i: idx, isManual: el.id.startsWith('custom-') }}
+                  custom={{ i: el.animationIndex, isManual: el.id.startsWith('custom-') }}
                   variants={boxVariants}
                   initial="hidden"
                   animate="visible"
                   exit="exit"
-                  className={`absolute border-[3px] border-transparent opacity-70 hover:opacity-100 z-10 
+                  whileHover={{
+                    scale: 1.05,
+                    zIndex: el.type === 'perimeter' ? 1 : 2000000
+                  }}
+                  className={`absolute border-[3px] border-transparent group 
                             ${editAction === 'remove' ? 'cursor-no-drop hover:bg-red-500/20 hover:!border-red-500' : 'cursor-pointer'}
+                            /* We use opacity-70 by default for the border via class if motion style doesn't override, 
+                               but here we control opacity via variants. Let's rely on variants for main opacity. */
                         `}
                   style={{
                     ...getStyleForBox(el.box_2d),
                     borderColor: COLORS[el.type as keyof typeof COLORS] || 'black',
-                    boxShadow: '0 0 0 1px rgba(255,255,255,0.3)'
+                    boxShadow: '0 0 0 1px rgba(255,255,255,0.3)',
+                    // zIndex is now less critical for ordering but helpful for small overlapping items of same size
+                    zIndex: (el.type === 'perimeter' ? 0 : 20) + Math.round(1000000 / ((el.box_2d[2] - el.box_2d[0]) * (el.box_2d[3] - el.box_2d[1]) + 1))
                   }}
-                  title={`${el.label} (${el.type})`}
                   onClick={(e) => handleBoxClick(el.id, e)}
                 >
                   {/* Label on hover - only show if not removing */}
                   {editAction !== 'remove' && (
-                    <div className="opacity-0 hover:opacity-100 absolute -bottom-8 left-1/2 -translate-x-1/2 bg-ink text-white text-xs px-2 py-1 rounded font-sans whitespace-nowrap z-20 pointer-events-none transition-opacity">
-                      {el.type}
+                    <div className="opacity-0 group-hover:opacity-100 absolute -bottom-10 left-1/2 -translate-x-1/2 bg-[#e8dfd6] text-ink text-xs px-2 py-1 border-2 border-ink font-hand font-bold whitespace-nowrap z-20 pointer-events-none transition-opacity shadow-sketch">
+                      {el.label}
                     </div>
                   )}
                   {/* Remove Icon overlay */}
